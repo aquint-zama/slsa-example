@@ -75,25 +75,28 @@ jobs:
     with:
       base64-subjects: "${{ needs.build.outputs.hashes }}"
       upload-assets: true
-      upload-tag-name: "v0.1.0"
+      upload-tag-name: "v0.1.1"
       # private-repository: true
-      draft-release: true
-      compile-generator: true # Workaround for https://github.com/slsa-framework/slsa-github-generator/issues/1163
+      # draft-release: true
+      # compile-generator: false # Workaround for https://github.com/slsa-framework/slsa-github-generator/issues/1163
 
-  # create-release-draft:
-  #   # Upload the sdist, wheels, and provenance to a GitHub release. They remain
-  #   # available as build artifacts for a while as well.
-  #   needs: [provenance]
-  #   runs-on: ubuntu-latest
-  #   if: ${{ always() }}
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-  #     - name: create release
-  #       run: >
-  #         gh release create --draft --repo ${{ github.repository }}
-  #         ${{ github.ref_name }}
-  #         *.intoto.jsonl/* artifact/*
-  #       env:
-  #         GH_TOKEN: ${{ github.token }}
+  create-release-draft:
+    # Upload the sdist, wheels, and provenance to a GitHub release. They remain
+    # available as build artifacts for a while as well.
+    needs: [provenance]
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          name: py3-wheel
+          path: dist/
+      - name: create release
+        run: >
+          gh release create --draft --repo ${{ github.repository }}
+          ${{ github.ref_name }}
+          dist/*
+        env:
+          GH_TOKEN: ${{ github.token }}
