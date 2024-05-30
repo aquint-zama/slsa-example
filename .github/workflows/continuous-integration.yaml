@@ -97,8 +97,8 @@ jobs:
 
       - name: create release
         run: >
-          gh release upload --draft --repo ${{ github.repository }}
+          gh release upload  --repo ${{ github.repository }}
           ${{ github.ref_name }}
-          dist/*
+          dist/*.whl
         env:
           GH_TOKEN: ${{ github.token }}
