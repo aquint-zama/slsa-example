@@ -62,8 +62,8 @@ jobs:
     with:
       base64-subjects: "${{ needs.build.outputs.hashes }}"
       # private-repository: true
-      upload-assets: true
-      draft-release: true
+      # upload-assets: true
+      # draft-release: true
       # compile-generator: false # Workaround for https://github.com/slsa-framework/slsa-github-generator/issues/1163
 
   create-release-draft:
@@ -87,6 +87,6 @@ jobs:
         run: >
           gh release upload  --repo ${{ github.repository }}
           ${{ github.ref_name }}
-          dist/*
+          dist/* *.intoto.jsonl
         env:
           GH_TOKEN: ${{ github.token }}
