@@ -1,0 +1,99 @@
+name: SimpleApp builds
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    # container:
+    #   image: ubuntu:20.04
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      # Checkout the code
+      # 'fetch-depth' is set to 0 in order to fetch all tags (used for generating the changelog)
+      - name: Checkout Code
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 #v4.1.6
+        with:
+          fetch-depth: 0
+          persist-credentials: 'false'
+
+      - name: Set up Python ${{ matrix.python_version }}
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d #v5.1.0
+        id: setup-python
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        id: install-deps
+        run: |
+          pip install poetry
+
+      # Build the wheel for releases with the reference build only
+      # Create packages before tests, to be able to get them if some unexpected test failure happens
+      # Build the package only once, as we don't have binary dependency this can be used on Linux
+      # and macOS as long as the dependencies are available
+      - name: Build wheel
+        id: build-wheel
+        # if: |
+        #   fromJSON(env.IS_RELEASE)
+        #   && fromJSON(env.IS_REF_BUILD)
+        #   && steps.conformance.outcome == 'success'
+        #   && !cancelled()
+        run: |
+          rm -rf dist
+          poetry build -f wheel
+
+      - name: "Generate hashes"
+        id: hash
+        run: |
+          cd dist && echo "hashes=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+
+      - name: Upload wheel artifacts
+        if: ${{ steps.build-wheel.outcome == 'success' && !cancelled() }}
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
+        with:
+          name: py3-wheel
+          path: dist/
+          if-no-files-found: error
+
+  provenance:
+    needs: [build]
+    permissions: write-all
+    # permissions:
+    #   pull-requests: read
+    #   actions: read
+    #   contents: write
+    #   id-token: write # Needed to access the workflow's OIDC identity.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true
+      upload-tag-name: "v0.1.0"
+      # private-repository: true
+      draft-release: true
+      compile-generator: true # Workaround for https://github.com/slsa-framework/slsa-github-generator/issues/1163
+
+  # create-release-draft:
+  #   # Upload the sdist, wheels, and provenance to a GitHub release. They remain
+  #   # available as build artifacts for a while as well.
+  #   needs: [provenance]
+  #   runs-on: ubuntu-latest
+  #   if: ${{ always() }}
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #     - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+  #     - name: create release
+  #       run: >
+  #         gh release create --draft --repo ${{ github.repository }}
+  #         ${{ github.ref_name }}
+  #         *.intoto.jsonl/* artifact/*
+  #       env:
+  #         GH_TOKEN: ${{ github.token }}
