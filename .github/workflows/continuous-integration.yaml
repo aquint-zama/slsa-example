@@ -89,7 +89,7 @@ jobs:
 
       - name: create release
         run: >
-          gh release upload  --repo ${{ github.repository }}
+          gh release create --draft --verify-tag --repo ${{ github.repository }}
           ${{ github.ref_name }}
           dist/* dist/*.intoto.jsonl
         env:
