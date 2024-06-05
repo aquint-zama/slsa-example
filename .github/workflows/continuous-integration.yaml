@@ -36,16 +36,19 @@ jobs:
 
       - name: Build
         id: build-wheel
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           rm -rf dist
           poetry build
 
       - name: "Generate hashes"
         id: hash
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           cd dist && echo "hashes=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
 
       - name: Upload wheel artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
           name: py3-build
@@ -54,6 +57,7 @@ jobs:
 
   provenance:
     needs: [build]
+    if: ${{ needs.build.outputs.hashes != '' }}
     permissions:
       actions: read
       contents: write
