@@ -75,7 +75,7 @@ jobs:
     # available as build artifacts for a while as well.
     needs: [provenance]
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
