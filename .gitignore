@@ -1,2 +1,5 @@
 dist/
 test/
+.venv
+Cargo.lock
+target/
